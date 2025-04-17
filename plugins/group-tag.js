@@ -1,5 +1,6 @@
 const { cmd } = require('../command');
 
+//Fixed & Created By JawadTechX
 cmd({
   pattern: "hidetag",
   alias: ["tag", "h"],  
@@ -31,8 +32,17 @@ async (conn, mek, m, {
     // If a reply to a message
     if (m.quoted) {
       const type = m.quoted.mtype || '';
-      const buffer = await m.quoted.download?.();
+      
+      // If it's a text message (extendedTextMessage)
+      if (type === 'extendedTextMessage') {
+        return await conn.sendMessage(from, {
+          text: m.quoted.text || 'No message content found.',
+          ...mentionAll
+        }, { quoted: mek });
+      }
 
+      // Download media and send accordingly
+      const buffer = await m.quoted.download?.();
       if (!buffer) return reply("❌ Failed to download the quoted media.");
 
       let content;
