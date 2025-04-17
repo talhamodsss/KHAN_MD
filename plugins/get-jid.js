@@ -1,28 +1,32 @@
 const { cmd } = require('../command');
 
 cmd({
-  pattern: "jid",
-  alias: ["id", "gjid", "chatid"],  
-  react: "🆔",
-  desc: "Get the JID of current group or chat",
-  category: "utility",
-  use: '.jid',
-  filename: __filename
-},
-async (conn, mek, m, {
-  from, isGroup, isCreator, reply
+    pattern: "jid",
+    alias: ["id", "chatid", "gjid"],  
+    desc: "Get full JID of current chat/user (Creator Only)",
+    react: "🆔",
+    category: "utility",
+    filename: __filename,
+}, async (conn, mek, m, { 
+    from, isGroup, isCreator, reply, sender 
 }) => {
-  try {
-    // Only creator can use this command
-    if (!isCreator) return reply("❌ Only the creator can use this command.");
+    try {
+        if (!isCreator) {
+            return reply("❌ *Command Restricted* - Only my creator can use this.");
+        }
 
-    if (isGroup) {
-      return reply(`👥 *Group JID:*\n${from}`);
-    } else {
-      return reply(`👤 *Chat JID:*\n${from.split('@')[0]}`); // Remove server part in PMs
+        if (isGroup) {
+            // Ensure group JID ends with @g.us
+            const groupJID = from.includes('@g.us') ? from : `${from}@g.us`;
+            return reply(`👥 *Group JID:*\n\`\`\`${groupJID}\`\`\``);
+        } else {
+            // Ensure user JID ends with @s.whatsapp.net
+            const userJID = sender.includes('@s.whatsapp.net') ? sender : `${sender}@s.whatsapp.net`;
+            return reply(`👤 *User JID:*\n\`\`\`${userJID}\`\`\``);
+        }
+
+    } catch (e) {
+        console.error("JID Error:", e);
+        reply(`⚠️ Error fetching JID:\n${e.message}`);
     }
-  } catch (e) {
-    console.error(e);
-    reply(`❌ *Error Occurred !!*\n\n${e.message}`);
-  }
 });
