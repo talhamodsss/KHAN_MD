@@ -1,16 +1,16 @@
 const { cmd } = require('../command');
-const config = require('../config');
 
 cmd({
   pattern: "hidetag",
+  alias: ["tag", "h"],  
   react: "🔊",
-  desc: "To Tag all Members for Message",
+  desc: "To Tag all Members for Any Message/Media",
   category: "group",
-  use: '.hidetag hello',
+  use: '.hidetag Hello',
   filename: __filename
 },
 async (conn, mek, m, {
-  from, quoted, q, isGroup, isCreator, isAdmins,
+  from, q, isGroup, isCreator, isAdmins,
   participants, reply
 }) => {
   try {
@@ -21,61 +21,70 @@ async (conn, mek, m, {
     if (!isGroup) return reply("❌ This command can only be used in groups.");
     if (!isAdmins && !isCreator) return reply("❌ Only group admins can use this command.");
 
-    let messageContent;
+    const mentionAll = { mentions: participants.map(u => u.id) };
 
-    if (quoted) {
-      const buffer = await quoted.download();
-      const mtype = quoted.mtype;
+    // If no message or reply is provided
+    if (!q && !m.quoted) {
+      return reply("❌ Please provide a message or reply to a message to tag all members.");
+    }
 
-      switch (mtype) {
+    // If a reply to a message
+    if (m.quoted) {
+      const type = m.quoted.mtype || '';
+      const buffer = await m.quoted.download?.();
+
+      if (!buffer) return reply("❌ Failed to download the quoted media.");
+
+      let content;
+
+      switch (type) {
         case "imageMessage":
-          messageContent = {
-            image: buffer,
-            caption: quoted.text || "📷 Image",
-            mentions: participants.map(u => u.id)
-          };
+          content = { image: buffer, caption: m.quoted.text || "📷 Image", ...mentionAll };
           break;
         case "videoMessage":
-          messageContent = {
-            video: buffer,
-            caption: quoted.text || "🎥 Video",
-            mentions: participants.map(u => u.id)
-          };
+          content = { video: buffer, caption: m.quoted.text || "🎥 Video", gifPlayback: m.quoted.message.videoMessage.gifPlayback || false, ...mentionAll };
           break;
         case "audioMessage":
-          messageContent = {
-            audio: buffer,
-            ptt: quoted.ptt || false,
-            mimetype: "audio/mp4",
-            mentions: participants.map(u => u.id)
+          content = { audio: buffer, mimetype: "audio/mp4", ptt: m.quoted.ptt || false, ...mentionAll };
+          break;
+        case "stickerMessage":
+          content = { sticker: buffer, ...mentionAll };
+          break;
+        case "documentMessage":
+          content = {
+            document: buffer,
+            mimetype: m.quoted.message.documentMessage.mimetype || "application/octet-stream",
+            fileName: m.quoted.message.documentMessage.fileName || "file",
+            caption: m.quoted.text || "",
+            ...mentionAll
           };
           break;
         default:
-          messageContent = {
-            text: quoted.text || "📨 Message",
-            mentions: participants.map(u => u.id)
-          };
+          content = { text: m.quoted.text || "📨 Message", ...mentionAll };
       }
 
-      return await conn.sendMessage(from, messageContent, { quoted: mek });
+      return await conn.sendMessage(from, content, { quoted: mek });
     }
 
-    if (!q) return reply("*Please provide a message or reply to one.*");
+    // If no quoted message, but a direct message is sent
+    if (q) {
+      // If the direct message is a URL, send it as a message
+      if (isUrl(q)) {
+        return await conn.sendMessage(from, {
+          text: q,
+          ...mentionAll
+        }, { quoted: mek });
+      }
 
-    if (isUrl(q)) {
-      return await conn.sendMessage(from, {
-        text: q,
-        mentions: participants.map(u => u.id)
+      // Otherwise, just send the text without the command name
+      await conn.sendMessage(from, {
+        text: q, // Sends the message without the command name
+        ...mentionAll
       }, { quoted: mek });
     }
 
-    await conn.sendMessage(from, {
-      text: q,
-      mentions: participants.map(u => u.id)
-    }, { quoted: mek });
-
   } catch (e) {
-    console.log(e);
+    console.error(e);
     reply(`❌ *Error Occurred !!*\n\n${e}`);
   }
 });
