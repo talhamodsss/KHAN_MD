@@ -2,14 +2,14 @@ const { cmd } = require("../command");
 
 cmd({
   pattern: "vv",
-  alias: ["viewonce", '🙃'],
-  react: '👾',
+  alias: ["viewonce", 'retrive'],
+  react: '🐳',
   desc: "Owner Only - retrieve quoted message back to user",
   category: "owner",
   filename: __filename
-}, async (client, message, match, { from, isOwner }) => {
+}, async (client, message, match, { from, isCreator }) => {
   try {
-    if (!isOwner) {
+    if (!isCreator) {
       return await client.sendMessage(from, {
         text: "*📛 This is an owner command.*"
       }, { quoted: message });
