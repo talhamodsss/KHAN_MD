@@ -49,7 +49,7 @@ cmd({
             }
         };
 
-        // Send menu with image
+        // Function to send menu image with timeout
         const sendMenuImage = async () => {
             try {
                 return await conn.sendMessage(
@@ -71,9 +71,10 @@ cmd({
             }
         };
 
-        // Send menu audio
+        // Function to send menu audio with timeout
         const sendMenuAudio = async () => {
             try {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay after image
                 await conn.sendMessage(from, {
                     audio: { url: 'https://github.com/XdTechPro/KHAN-DATA/raw/refs/heads/main/autovoice/menunew.m4a' },
                     mimetype: 'audio/mp4',
@@ -84,29 +85,31 @@ cmd({
             }
         };
 
-        // Execute both sends in parallel with timeout
-        const [sentMsg] = await Promise.all([
-            Promise.race([
+        // Send image first, then audio sequentially
+        let sentMsg;
+        try {
+            // Send image with 10s timeout
+            sentMsg = await Promise.race([
                 sendMenuImage(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Menu send timeout')), 10000))
-            ]),
-            Promise.race([
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Image send timeout')), 10000))
+            ]);
+            
+            // Then send audio with 1s delay and 8s timeout
+            await Promise.race([
                 sendMenuAudio(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Audio send timeout')), ,12000))
-            ])
-        ]).catch(e => {
-            console.log('Menu initialization error:', e);
-            return []; // Continue with empty array if both fail
-        });
-
-        if (!sentMsg) {
-            return await conn.sendMessage(
-                from,
-                { text: menuCaption, contextInfo: contextInfo },
-                { quoted: mek }
-            );
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Audio send timeout')), 8000))
+            ]);
+        } catch (e) {
+            console.log('Menu send error:', e);
+            if (!sentMsg) {
+                sentMsg = await conn.sendMessage(
+                    from,
+                    { text: menuCaption, contextInfo: contextInfo },
+                    { quoted: mek }
+                );
+            }
         }
-
+        
         const messageID = sentMsg.key.id;
 
         // Menu data (complete version)
