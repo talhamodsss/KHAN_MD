@@ -1,32 +1,81 @@
-const config = require('../config')
-const { cmd, commands } = require('../command')
-const { getBuffer, getGroupAdmins, getRandom, h2k, isUrl, Json, runtime, sleep, fetchJson} = require('../lib/functions')
+const { cmd } = require('../command');
+const config = require('../config');
 
 cmd({
-    pattern: "hidetag",
-    react: "🔊",
-    desc: "To Tag all Members for Message",
-    category: "group",
-    use: '.tag Hi',
-    filename: __filename
+  pattern: "hidetag",
+  react: "🔊",
+  desc: "To Tag all Members for Message",
+  category: "group",
+  use: '.hidetag hello',
+  filename: __filename
 },
-async(conn, mek, m,{from, l, quoted, body, isCmd, command, mentionByTag , args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isCreator ,isDev, isAdmins, reply}) => {
-try{
-const msr = (await fetchJson('https://raw.githubusercontent.com/XdTechPro/KHAN-DATA/refs/heads/main/MSG/mreply.json')).replyMsg
+async (conn, mek, m, {
+  from, quoted, q, isGroup, isCreator, isAdmins,
+  participants, reply
+}) => {
+  try {
+    const isUrl = (url) => {
+      return /https?:\/\/(www\.)?[\w\-@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([\w\-@:%_\+.~#?&//=]*)/.test(url);
+    };
 
-if (!isGroup) return reply(msr.only_gp)
-if (!isAdmins) { if (!isDev) return reply(msr.you_adm),{quoted:mek }} 
-if (!isBotAdmins) return reply(msr.give_adm)
-	
-		if(!q) return reply('*Please add a Message* ℹ️')
-		let teks = `${q}`
-                conn.sendMessage(from, { text: teks, mentions: participants.map(a => a.id) }, { quoted: mek })
-                
-} catch (e) {
-await conn.sendMessage(from, { react: { text: '❌', key: mek.key } })
-console.log(e)
-reply(`❌ *Error Accurated !!*\n\n${e}`)
-}
-} )
+    if (!isGroup) return reply("❌ This command can only be used in groups.");
+    if (!isAdmins && !isCreator) return reply("❌ Only group admins can use this command.");
 
+    let messageContent;
 
+    if (quoted) {
+      const buffer = await quoted.download();
+      const mtype = quoted.mtype;
+
+      switch (mtype) {
+        case "imageMessage":
+          messageContent = {
+            image: buffer,
+            caption: quoted.text || "📷 Image",
+            mentions: participants.map(u => u.id)
+          };
+          break;
+        case "videoMessage":
+          messageContent = {
+            video: buffer,
+            caption: quoted.text || "🎥 Video",
+            mentions: participants.map(u => u.id)
+          };
+          break;
+        case "audioMessage":
+          messageContent = {
+            audio: buffer,
+            ptt: quoted.ptt || false,
+            mimetype: "audio/mp4",
+            mentions: participants.map(u => u.id)
+          };
+          break;
+        default:
+          messageContent = {
+            text: quoted.text || "📨 Message",
+            mentions: participants.map(u => u.id)
+          };
+      }
+
+      return await conn.sendMessage(from, messageContent, { quoted: mek });
+    }
+
+    if (!q) return reply("*Please provide a message or reply to one.*");
+
+    if (isUrl(q)) {
+      return await conn.sendMessage(from, {
+        text: q,
+        mentions: participants.map(u => u.id)
+      }, { quoted: mek });
+    }
+
+    await conn.sendMessage(from, {
+      text: q,
+      mentions: participants.map(u => u.id)
+    }, { quoted: mek });
+
+  } catch (e) {
+    console.log(e);
+    reply(`❌ *Error Occurred !!*\n\n${e}`);
+  }
+});
