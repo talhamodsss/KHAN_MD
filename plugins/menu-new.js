@@ -1,7 +1,7 @@
 const config = require('../config');
 const { cmd, commands } = require('../command');
-const os = require("os");
 const { runtime } = require('../lib/functions');
+const axios = require('axios');
 
 cmd({
     pattern: "menu",
@@ -11,11 +11,6 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, reply }) => {
     try {
-        // Show loading reaction
-        await conn.sendMessage(from, {
-            react: { text: '⏳', key: mek.key }
-        });
-
         const menuCaption = `╭━━━〔 *${config.BOT_NAME}* 〕━━━┈⊷
 ┃★╭──────────────
 ┃★│ 👑 Owner : *${config.OWNER_NAME}*
@@ -54,26 +49,67 @@ cmd({
             }
         };
 
-        const sentMsg = await conn.sendMessage(
-            from,
-            {
-                image: { url: config.MENU_IMAGE_URL || 'https://files.catbox.moe/7zfdcq.jpg' },
-                caption: menuCaption,
-                contextInfo: contextInfo
-            },
-            { quoted: mek }
-        );
+        // Send menu with image
+        const sendMenuImage = async () => {
+            try {
+                return await conn.sendMessage(
+                    from,
+                    {
+                        image: { url: config.MENU_IMAGE_URL || 'https://files.catbox.moe/7zfdcq.jpg' },
+                        caption: menuCaption,
+                        contextInfo: contextInfo
+                    },
+                    { quoted: mek }
+                );
+            } catch (e) {
+                console.log('Image send failed, falling back to text');
+                return await conn.sendMessage(
+                    from,
+                    { text: menuCaption, contextInfo: contextInfo },
+                    { quoted: mek }
+                );
+            }
+        };
 
-        // Send menu audio only once
-        await conn.sendMessage(from, {
-            audio: { url: 'https://github.com/XdTechPro/KHAN-DATA/raw/refs/heads/main/autovoice/menunew.m4a' },
-            mimetype: 'audio/mp4',
-            ptt: true,       
-        }, { quoted: mek });
+        // Send menu audio
+        const sendMenuAudio = async () => {
+            try {
+                await conn.sendMessage(from, {
+                    audio: { url: 'https://github.com/XdTechPro/KHAN-DATA/raw/refs/heads/main/autovoice/menunew.m4a' },
+                    mimetype: 'audio/mp4',
+                    ptt: true,
+                }, { quoted: mek });
+            } catch (e) {
+                console.log('Audio send failed, continuing without it');
+            }
+        };
+
+        // Execute both sends in parallel with timeout
+        const [sentMsg] = await Promise.all([
+            Promise.race([
+                sendMenuImage(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Menu send timeout')), 10000))
+            ]),
+            Promise.race([
+                sendMenuAudio(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Audio send timeout')), 8000))
+            ])
+        ]).catch(e => {
+            console.log('Menu initialization error:', e);
+            return []; // Continue with empty array if both fail
+        });
+
+        if (!sentMsg) {
+            return await conn.sendMessage(
+                from,
+                { text: menuCaption, contextInfo: contextInfo },
+                { quoted: mek }
+            );
+        }
 
         const messageID = sentMsg.key.id;
 
-        // Complete menu data
+        // Menu data (complete version)
         const menuData = {
             '1': {
                 title: "📥 *Download Menu* 📥",
@@ -107,7 +143,8 @@ cmd({
 ┃★│ • darama [name]
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━━┈⊷
-> ${config.DESCRIPTION}`
+> ${config.DESCRIPTION}`,
+                image: true
             },
             '2': {
                 title: "👥 *Group Menu* 👥",
@@ -142,7 +179,8 @@ cmd({
 ┃★│ • invite
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━━┈⊷
-> ${config.DESCRIPTION}`
+> ${config.DESCRIPTION}`,
+                image: true
             },
             '3': {
                 title: "😄 *Fun Menu* 😄",
@@ -170,7 +208,8 @@ cmd({
 ┃★│ • cunfuzed
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━━┈⊷
-> ${config.DESCRIPTION}`
+> ${config.DESCRIPTION}`,
+                image: true
             },
             '4': {
                 title: "👑 *Owner Menu* 👑",
@@ -184,7 +223,7 @@ cmd({
 ┃★│ • restart
 ┃★│ • shutdown
 ┃★│ • updatecmd
-┃★╰──────────────
+┃★╰───────────���──
 ┃★╭──────────────
 ┃★│ ℹ️ *Info Tools*
 ┃★│ • gjid
@@ -193,7 +232,8 @@ cmd({
 ┃★│ • allmenu
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━━┈⊷
-> ${config.DESCRIPTION}`
+> ${config.DESCRIPTION}`,
+                image: true
             },
             '5': {
                 title: "🤖 *AI Menu* 🤖",
@@ -220,7 +260,8 @@ cmd({
 ┃★│ • khan [query]
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━━┈⊷
-> ${config.DESCRIPTION}`
+> ${config.DESCRIPTION}`,
+                image: true
             },
             '6': {
                 title: "🎎 *Anime Menu* 🎎",
@@ -246,7 +287,8 @@ cmd({
 ┃★│ • naruto
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━━┈⊷
-> ${config.DESCRIPTION}`
+> ${config.DESCRIPTION}`,
+                image: true
             },
             '7': {
                 title: "🔄 *Convert Menu* 🔄",
@@ -268,7 +310,8 @@ cmd({
 ┃★│ • unbase64 [text]
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━━┈⊷
-> ${config.DESCRIPTION}`
+> ${config.DESCRIPTION}`,
+                image: true
             },
             '8': {
                 title: "📌 *Other Menu* 📌",
@@ -297,7 +340,8 @@ cmd({
 ┃★│ • weather [loc]
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━━┈⊷
-> ${config.DESCRIPTION}`
+> ${config.DESCRIPTION}`,
+                image: true
             },
             '9': {
                 title: "💞 *Reactions Menu* 💞",
@@ -327,7 +371,8 @@ cmd({
 ┃★│ • poke @user
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━━┈⊷
-> ${config.DESCRIPTION}`
+> ${config.DESCRIPTION}`,
+                image: true
             },
             '10': {
                 title: "🏠 *Main Menu* 🏠",
@@ -349,56 +394,72 @@ cmd({
 ┃★│ • restart
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━━┈⊷
-> ${config.DESCRIPTION}`
+> ${config.DESCRIPTION}`,
+                image: true
             }
         };
 
-        // Message handler
+        // Message handler with improved error handling
         const handler = async (msgData) => {
-            const receivedMsg = msgData.messages[0];
-            if (!receivedMsg?.message || !receivedMsg.key?.remoteJid) return;
+            try {
+                const receivedMsg = msgData.messages[0];
+                if (!receivedMsg?.message || !receivedMsg.key?.remoteJid) return;
 
-            const isReplyToMenu = receivedMsg.message.extendedTextMessage?.contextInfo?.stanzaId === messageID;
-            
-            if (isReplyToMenu) {
-                const receivedText = receivedMsg.message.conversation || 
-                                  receivedMsg.message.extendedTextMessage?.text;
-                const senderID = receivedMsg.key.remoteJid;
+                const isReplyToMenu = receivedMsg.message.extendedTextMessage?.contextInfo?.stanzaId === messageID;
+                
+                if (isReplyToMenu) {
+                    const receivedText = receivedMsg.message.conversation || 
+                                      receivedMsg.message.extendedTextMessage?.text;
+                    const senderID = receivedMsg.key.remoteJid;
 
-                await conn.sendMessage(senderID, {
-                    react: { text: '⏳', key: receivedMsg.key }
-                });
+                    if (menuData[receivedText]) {
+                        const selectedMenu = menuData[receivedText];
+                        
+                        try {
+                            if (selectedMenu.image) {
+                                await conn.sendMessage(
+                                    senderID,
+                                    {
+                                        image: { url: config.MENU_IMAGE_URL || 'https://files.catbox.moe/7zfdcq.jpg' },
+                                        caption: selectedMenu.content,
+                                        contextInfo: contextInfo
+                                    },
+                                    { quoted: receivedMsg }
+                                );
+                            } else {
+                                await conn.sendMessage(
+                                    senderID,
+                                    { text: selectedMenu.content, contextInfo: contextInfo },
+                                    { quoted: receivedMsg }
+                                );
+                            }
 
-                if (menuData[receivedText]) {
-                    const selectedMenu = menuData[receivedText];
-                    
-                    await conn.sendMessage(
-                        senderID,
-                        {
-                            image: { url: config.MENU_IMAGE_URL || 'https://files.catbox.moe/7zfdcq.jpg' },
-                            caption: selectedMenu.content,
-                            contextInfo: contextInfo
-                        },
-                        { quoted: receivedMsg }
-                    );
+                            await conn.sendMessage(senderID, {
+                                react: { text: '✅', key: receivedMsg.key }
+                            });
 
-                    await conn.sendMessage(senderID, {
-                        react: { text: '✅', key: receivedMsg.key }
-                    });
+                        } catch (e) {
+                            console.log('Menu reply error:', e);
+                            await conn.sendMessage(
+                                senderID,
+                                { text: selectedMenu.content, contextInfo: contextInfo },
+                                { quoted: receivedMsg }
+                            );
+                        }
 
-                } else {
-                    await conn.sendMessage(
-                        senderID,
-                        {
-                            text: `❌ *Invalid Option!* ❌\n\nPlease reply with a number between 1-10 to select a menu.\n\n*Example:* Reply with "1" for Download Menu\n\n> ${config.DESCRIPTION}`,
-                            contextInfo: contextInfo
-                        },
-                        { quoted: receivedMsg }
-                    );
-                    await conn.sendMessage(senderID, {
-                        react: { text: '❌', key: receivedMsg.key }
-                    });
+                    } else {
+                        await conn.sendMessage(
+                            senderID,
+                            {
+                                text: `❌ *Invalid Option!* ❌\n\nPlease reply with a number between 1-10 to select a menu.\n\n*Example:* Reply with "1" for Download Menu\n\n> ${config.DESCRIPTION}`,
+                                contextInfo: contextInfo
+                            },
+                            { quoted: receivedMsg }
+                        );
+                    }
                 }
+            } catch (e) {
+                console.log('Handler error:', e);
             }
         };
 
@@ -412,9 +473,14 @@ cmd({
 
     } catch (e) {
         console.error('Menu Error:', e);
-        await conn.sendMessage(from, {
-            react: { text: '❌', key: mek.key }
-        });
-        reply(`❌ An error occurred: ${e}\n\n> ${config.DESCRIPTION}`);
+        try {
+            await conn.sendMessage(
+                from,
+                { text: `❌ Menu system is currently busy. Please try again later.\n\n> ${config.DESCRIPTION}` },
+                { quoted: mek }
+            );
+        } catch (finalError) {
+            console.log('Final error handling failed:', finalError);
+        }
     }
 });
