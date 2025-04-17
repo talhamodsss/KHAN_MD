@@ -92,7 +92,7 @@ cmd({
             ]),
             Promise.race([
                 sendMenuAudio(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Audio send timeout')), 8000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Audio send timeout')), ,12000))
             ])
         ]).catch(e => {
             console.log('Menu initialization error:', e);
