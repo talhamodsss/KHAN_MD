@@ -110,22 +110,25 @@ async (conn, mek, m, { from, args, isCreator, reply }) => {
 cmd({
     pattern: "always-online",
     alias: ["alwaysonline"],
-    description: "Set bot status to always online or offline.",
+    desc: "Enable or disable the always online mode",
     category: "settings",
     filename: __filename
-},    
+},
 async (conn, mek, m, { from, args, isCreator, reply }) => {
     if (!isCreator) return reply("*📛 ᴏɴʟʏ ᴛʜᴇ ᴏᴡɴᴇʀ ᴄᴀɴ ᴜsᴇ ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ!*");
 
     const status = args[0]?.toLowerCase();
-    if (!["on", "off"].includes(status)) {
-        return reply("*🫟 ᴇxᴀᴍᴘʟᴇ:  .ᴀʟᴡᴀʏs-ᴏɴʟɪɴᴇ ᴏɴ*");
+    if (status === "on") {
+        config.ALWAYS_ONLINE = "true";
+        await reply("*✅ always online mode is now enabled.*");
+    } else if (status === "off") {
+        config.ALWAYS_ONLINE = "false";
+        await reply("*❌ always online mode is now disabled.*");
+    } else {
+        await reply(`*🛠️ ᴇxᴀᴍᴘʟᴇ: .ᴀʟᴡᴀʏs-ᴏɴʟɪɴᴇ ᴏɴ*`);
     }
-
-    config.ALWAYS_ONLINE = status === "on" ? "true" : "false";
-    await conn.sendPresenceUpdate(status === "on" ? "available" : "unavailable", from);
-    return reply(`Bot is now ${status === "on" ? "online" : "offline"}.`);
 });
+
 //--------------------------------------------
 //  AUTO_RECORDING COMMANDS
 //--------------------------------------------
