@@ -11,17 +11,22 @@ function isEnabled(value) {
 cmd({
     pattern: "env",
     alias: ["config", "settings"],
-    desc: "Show all bot configuration variables",
+    desc: "Show all bot configuration variables (Owner Only)",
     category: "system",
     react: "⚙️",
     filename: __filename
 }, 
-async (conn, mek, m, { from, quoted, reply }) => {
+async (conn, mek, m, { from, quoted, reply, IsCreater }) => {
     try {
+        // Owner check
+        if (!IsCreater) {
+            return reply("🚫 *Owner Only Command!* You're not authorized to view bot configurations.");
+        }
+
         const isEnabled = (value) => value && value.toString().toLowerCase() === "true";
 
         let envSettings = `
-╭───『 *${config.BOT_NAME} CONFIG* 』───�
+╭───『 *${config.BOT_NAME} CONFIG* 』───❏
 │
 ├─❏ *🤖 BOT INFO*
 │  ├─∘ *Name:* ${config.BOT_NAME}
@@ -68,7 +73,7 @@ async (conn, mek, m, { from, quoted, reply }) => {
 │  ├─∘ *Anti-Del Path:* ${config.ANTI_DEL_PATH}
 │  └─∘ *Dev Number:* ${config.DEV}
 │
-╰───『 *${config.DESCRIPTION}* 』───�
+╰───『 ${config.DESCRIPTION} 』───❏
 `;
 
         await conn.sendMessage(
@@ -100,4 +105,4 @@ async (conn, mek, m, { from, quoted, reply }) => {
         console.error('Env command error:', error);
         reply(`❌ Error displaying config: ${error.message}`);
     }
-}); 
+});
