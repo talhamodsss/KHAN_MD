@@ -3,7 +3,6 @@ const { cmd, commands } = require('../command');
 
 cmd({
     pattern: "msg",
-    alias: ["repeat", "spam"],
     desc: "Send a message multiple times (Owner Only)",
     category: "utility",
     react: "🔁",
