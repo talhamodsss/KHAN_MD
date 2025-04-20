@@ -16,10 +16,10 @@ cmd({
     react: "⚙️",
     filename: __filename
 }, 
-async (conn, mek, m, { from, quoted, reply, IsCreater }) => {
+async (conn, mek, m, { from, quoted, reply, isCreator }) => {
     try {
         // Owner check
-        if (!IsCreater) {
+        if (!isCreator) {
             return reply("🚫 *Owner Only Command!* You're not authorized to view bot configurations.");
         }
 
@@ -73,7 +73,7 @@ async (conn, mek, m, { from, quoted, reply, IsCreater }) => {
 │  ├─∘ *Anti-Del Path:* ${config.ANTI_DEL_PATH}
 │  └─∘ *Dev Number:* ${config.DEV}
 │
-╰───『 ${config.DESCRIPTION} 』───❏
+╰───『 *${config.DESCRIPTION}* 』───❏
 `;
 
         await conn.sendMessage(
